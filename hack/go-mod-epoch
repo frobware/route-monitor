@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# Reproducible builds? Let's see:
+
+set -eu
+export GO111MODULE=on
+go clean -x -modcache -cache -testcache || true
+
+rm -f go.mod go.sum
+rm -rf vendor
+
+cat <<EOF > go.mod
+module github.com/frobware/route-monitor
+
+go 1.12
+
+require (
+)
+
+replace (
+	github.com/appscode/jsonpatch => gomodules.xyz/jsonpatch/v2 v2.0.1
+	github.com/openshift/api => github.com/openshift/api release-4.2
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.1.0
+	k8s.io/api => k8s.io/api kubernetes-1.16.1
+	k8s.io/apimachinery => k8s.io/apimachinery kubernetes-1.16.1
+	k8s.io/client-go => k8s.io/client-go kubernetes-1.16.1
+	sigs.k8s.io/controller-runtime => github.com/frobware/controller-runtime bump-to-kube-1.16.1
+)
+
+EOF
+
+make
+make test
+go mod tidy
