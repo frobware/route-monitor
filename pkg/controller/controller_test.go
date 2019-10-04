@@ -11,7 +11,7 @@ import (
 
 type testControllerShutdownFunc func()
 
-func newTestController(t *testing.T, routes ...string) (*routeController, testControllerShutdownFunc) {
+func newTestController(t *testing.T, routes ...string) (*RouteController, testControllerShutdownFunc) {
 	t.Helper()
 	routeObjects := make([]runtime.Object, 0)
 
@@ -22,12 +22,12 @@ func newTestController(t *testing.T, routes ...string) (*routeController, testCo
 	clientSet := fake.NewSimpleDynamicClient(runtime.NewScheme(), routeObjects...)
 	controller, err := NewController(clientSet)
 	if err != nil {
-		t.Fatal("failed to create test routeController")
+		t.Fatal("failed to create test controller")
 	}
 
 	stopCh := make(chan struct{})
 	if err := controller.Start(stopCh); err != nil {
-		t.Fatalf("failed to run routeController: %v", err)
+		t.Fatalf("failed to start controller: %v", err)
 	}
 
 	return controller, func() {
@@ -72,7 +72,7 @@ func TestNewController(t *testing.T) {
 	routesIndexedByNamespace := c.GetRoutesIndexedByNamespace()
 	val, ok := routesIndexedByNamespace["test"]
 	if !ok {
-		t.Fatalf("expectd to find a route in namespace %q", "test")
+		t.Fatalf("expected to find a route in namespace %q", "test")
 	}
 	if val != newRoute {
 		t.Errorf("expected %q, got %q", newRoute, val)

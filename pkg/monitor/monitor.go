@@ -20,7 +20,7 @@ type Connector interface {
 	Connect(route Route) (bool, error)
 }
 
-var defaultConnectionTimeout = time.Duration(5 * time.Second)
+var defaultConnectionTimeout = 5 * time.Second
 
 type Route struct {
 	Host    string
@@ -72,7 +72,9 @@ func (d defaultConnector) Connect(route Route) (bool, error) {
 	// is independent of the context timeout.
 	client := http.Client{Timeout: route.GetTimeout()}
 	req, err := http.NewRequest(http.MethodGet, route.Host, nil)
-
+	if err != nil {
+		return false, err
+	}
 	// We initialize the context, and specify a context timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), route.GetTimeout())
 	defer cancel() // cancel() is a hook to cancel the deadline
@@ -107,10 +109,10 @@ func (d defaultLogger) Errorf(format string, a ...interface{}) {
 	klog.Errorf(format, a...)
 }
 
-func DefaultConnector() defaultConnector {
+func DefaultConnector() Connector {
 	return defaultConnector{}
 }
 
-func DefaultLogger() defaultLogger {
+func DefaultLogger() Logger {
 	return defaultLogger{}
 }

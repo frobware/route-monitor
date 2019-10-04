@@ -15,16 +15,16 @@ import (
 // TODO(frobware) parameterize this
 const routesV1 = "routes.v1.route.openshift.io"
 
-type routeController struct {
+type RouteController struct {
 	client          dynamic.Interface
 	informerFactory dynamicinformer.DynamicSharedInformerFactory
 	routeInformer   informers.GenericInformer
 	routeResource   *schema.GroupVersionResource
 }
 
-// NewController constructs a new routeController that watches for routes
+// NewController constructs a new RouteController that watches for routes
 // as they are added, updated and deleted on the cluster.
-func NewController(client dynamic.Interface) (*routeController, error) {
+func NewController(client dynamic.Interface) (*RouteController, error) {
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(client, 0, v1.NamespaceAll, nil)
 	routeResource, _ := schema.ParseResourceArg(routesV1)
 
@@ -35,7 +35,7 @@ func NewController(client dynamic.Interface) (*routeController, error) {
 	routeInformer := informerFactory.ForResource(*routeResource)
 	routeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{})
 
-	return &routeController{
+	return &RouteController{
 		client:          client,
 		informerFactory: informerFactory,
 		routeInformer:   routeInformer,
@@ -44,7 +44,7 @@ func NewController(client dynamic.Interface) (*routeController, error) {
 }
 
 // Start starts the route informer
-func (c *routeController) Start(stopCh <-chan struct{}) error {
+func (c *RouteController) Start(stopCh <-chan struct{}) error {
 	c.informerFactory.Start(stopCh)
 
 	if !cache.WaitForCacheSync(stopCh, c.routeInformer.Informer().HasSynced) {
@@ -54,7 +54,7 @@ func (c *routeController) Start(stopCh <-chan struct{}) error {
 }
 
 // GetRoutes returns all the routes in namespace
-func (c *routeController) GetRoutes(namespace string) []string {
+func (c *RouteController) GetRoutes(namespace string) []string {
 	var routes []string
 
 	for _, x := range c.routeInformer.Informer().GetStore().List() {
@@ -69,7 +69,7 @@ func (c *routeController) GetRoutes(namespace string) []string {
 
 // GetRoutesIndexedByNamespace returns all the routes mapped by their
 // namespace.
-func (c *routeController) GetRoutesIndexedByNamespace() map[string]string {
+func (c *RouteController) GetRoutesIndexedByNamespace() map[string]string {
 	routes := map[string]string{}
 
 	for _, x := range c.routeInformer.Informer().GetStore().List() {
