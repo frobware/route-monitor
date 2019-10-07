@@ -67,18 +67,18 @@ func (c *RouteController) Start(stopCh <-chan struct{}) error {
 
 // AllRoutes returns route names from all namespaces. Each name is
 // formatted as <namespace>/<name>.
-func (c *RouteController) AllRoutes() ([]string, error) {
-	var routes []string
+// func (c *RouteController) AllRoutes() ([]string, error) {
+// 	var routes []string
 
-	for _, x := range c.routeInformer.Informer().GetStore().List() {
-		u := x.(*unstructured.Unstructured).DeepCopy()
-		routes = append(routes, fmt.Sprintf("%s/%s", u.GetNamespace(), u.GetName()))
-	}
+// 	for _, x := range c.routeInformer.Informer().GetStore().List() {
+// 		u := x.(*unstructured.Unstructured).DeepCopy()
+// 		routes = append(routes, fmt.Sprintf("%s/%s", u.GetNamespace(), u.GetName()))
+// 	}
 
-	return routes, nil
-}
+// 	return routes, nil
+// }
 
-// GetRoute returns the route for key (<namespace>/<name>).
+// getroute returns the route for key (<namespace>/<name>).
 func (c *RouteController) GetRoute(key string) (*Route, error) {
 	x, exists, err := c.routeInformer.Informer().GetStore().GetByKey(key)
 	if err != nil {
