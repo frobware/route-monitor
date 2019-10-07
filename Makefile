@@ -1,12 +1,14 @@
-.PHONY: all bin/route-monitor
+.PHONY: all bin/route-monitor clean test
 
 all: bin/route-monitor
 
+binary: bin/route-monitor
+
 bin/route-monitor:
-	go build -gcflags=all="-N -l" -o $@ cmd/route-monitor/main.go
+	GO111MODULE=on go build -gcflags=all="-N -l" -o $@ cmd/route-monitor/main.go
 
 test:
-	go test -v -race ./...
+	GO111MODULE=on go test -v -race ./...
 
 clean:
 	$(RM) -r bin

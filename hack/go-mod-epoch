@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# Reproducible builds? Let's see:
+
+set -eu
+
+GO111MODULE=off go clean -x -modcache -cache -testcache
+
+rm -f go.mod go.sum
+
+cat <<EOF > go.mod
+module github.com/frobware/route-monitor
+
+go 1.12
+
+replace (
+	k8s.io/client-go => k8s.io/client-go v0.0.0-20190425172711-65184652c889
+)
+EOF
+
+GO111MODULE=on go get k8s.io/apimachinery@kubernetes-1.16.1
+make
+make test
