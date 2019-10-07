@@ -78,20 +78,26 @@ func SetRouteStatus(name string, status string) {
 
 func SetRouteReachable(name string) {
 	// Experimenting with metric types; what makes most sense here?
+
 	// Historgram?
-	SetRouteStatus(name, "200")
+	// SetRouteStatus(name, "200")
+
 	// Counter?
-	IncRoutesReachableCounter(name)
+	// IncRoutesReachableCounter(name)
+
 	// Gauge?
 	SetRoutesReachableGauge(name)
 }
 
 func SetRouteUnreachable(name string) {
 	// Experimenting with metric types; what makes most sense here?
+
 	// Histogram?
-	SetRouteStatus(name, "404")
+	// SetRouteStatus(name, "404")
+
 	// Counter?
-	IncRoutesUnreachableCounter(name)
+	// IncRoutesUnreachableCounter(name)
+
 	// Gauge?
 	SetRoutesUnreachableGauge(name)
 }

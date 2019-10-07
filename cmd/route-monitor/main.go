@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/frobware/route-monitor/pkg/controller"
@@ -81,21 +80,21 @@ func monitorRoutes(controller *controller.RouteController, names []string, f rea
 		i += 1
 
 		for _, name := range names {
-			// Randomly fail/testing/experimentation
-			if i%2 == 0 && os.Getenv("RANDOM_RESULT") != "" {
-				switch n := rand.Intn(3); n {
-				case 0:
-					klog.Infof("**** Ramdomising result for %q to ReachableRoute", name)
-					f(name, ReachableRoute)
-				case 1:
-					klog.Infof("**** Ramdomising result for %q to UnreachableRoute", name)
-					f(name, UnreachableRoute)
-				case 2:
-					klog.Infof("**** Ramdomising result for %q to UnknownRoute", name)
-					f(name, UnknownRoute)
-				}
-				continue
-			}
+			// // Randomly fail/testing/experimentation
+			// if i%2 == 0 && os.Getenv("RANDOM_RESULT") != "" {
+			// 	switch n := rand.Intn(3); n {
+			// 	case 0:
+			// 		klog.Infof("**** Ramdomising result for %q to ReachableRoute", name)
+			// 		f(name, ReachableRoute)
+			// 	case 1:
+			// 		klog.Infof("**** Ramdomising result for %q to UnreachableRoute", name)
+			// 		f(name, UnreachableRoute)
+			// 	case 2:
+			// 		klog.Infof("**** Ramdomising result for %q to UnknownRoute", name)
+			// 		f(name, UnknownRoute)
+			// 	}
+			// 	continue
+			// }
 
 			route, err := controller.GetRoute(name)
 			if err != nil || route == nil {
@@ -151,6 +150,9 @@ func main() {
 	}
 
 	go monitorRoutes(routeController, flag.Args(), func(name string, status reachableStatus) {
+		if name == "openshift-console/console" {
+			status = UnreachableRoute
+		}
 		switch status {
 		case ReachableRoute:
 			metrics.SetRouteReachable(name)

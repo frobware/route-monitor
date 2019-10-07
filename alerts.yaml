@@ -1,0 +1,13 @@
+groups:
+- name: routereachability
+  rules:
+  # Alert for any route that is unreachable for some (TBD) time
+  - alert: Route unreachable
+    expr:
+      routes_reachable{instance="localhost:8000",job="route-monitor",name="openshift-console/console"}==0
+    for: 5s
+    labels:
+      severity: critical
+    annotations:
+      summary: "Route {{ $labels.name }} unreachable"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been unreahable for _some_ time."

@@ -70,8 +70,8 @@ func (c *RouteController) Start(stopCh <-chan struct{}) error {
 func (c *RouteController) AllRoutes() ([]string, error) {
 	var routes []string
 
-	for _, x := range c.routeInformer.Informer().GetStore().List() {
-		u := x.(*unstructured.Unstructured).DeepCopy()
+	for _, item := range c.routeInformer.Informer().GetStore().List() {
+		u := item.(*unstructured.Unstructured).DeepCopy()
 		routes = append(routes, fmt.Sprintf("%s/%s", u.GetNamespace(), u.GetName()))
 	}
 
@@ -80,16 +80,16 @@ func (c *RouteController) AllRoutes() ([]string, error) {
 
 // GetRoute returns the route for key (<namespace>/<name>).
 func (c *RouteController) GetRoute(key string) (*Route, error) {
-	x, exists, err := c.routeInformer.Informer().GetStore().GetByKey(key)
+	item, exists, err := c.routeInformer.Informer().GetStore().GetByKey(key)
 	if err != nil {
 		return nil, err
 	}
 
-	if !exists || x == nil {
+	if !exists || item == nil {
 		return nil, nil
 	}
 
-	u := x.(*unstructured.Unstructured).DeepCopy()
+	u := item.(*unstructured.Unstructured).DeepCopy()
 
 	if host := hostFromUnstructured(u); host != "" {
 		return &Route{
