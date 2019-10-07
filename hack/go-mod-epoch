@@ -2,11 +2,14 @@
 
 # Reproducible builds? Let's see:
 
+export GO111MODULE=on
+
+go clean -v -modcache -cache -testcache
+
 set -eu
 
-GO111MODULE=off go clean -x -modcache -cache -testcache
-
 rm -f go.mod go.sum
+rm -rf vendor
 
 cat <<EOF > go.mod
 module github.com/frobware/route-monitor
@@ -14,10 +17,11 @@ module github.com/frobware/route-monitor
 go 1.12
 
 replace (
-	k8s.io/client-go => k8s.io/client-go v0.0.0-20190425172711-65184652c889
+	k8s.io/client-go => k8s.io/client-go kubernetes-1.16.1
+	k8s.io/apimachinery => k8s.io/apimachinery kubernetes-1.16.1
 )
 EOF
 
-GO111MODULE=on go get k8s.io/apimachinery@kubernetes-1.16.1
 make
 make test
+go mod tidy

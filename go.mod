@@ -2,7 +2,10 @@ module github.com/frobware/route-monitor
 
 go 1.12
 
-replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190425172711-65184652c889
+replace (
+	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
+	k8s.io/client-go => k8s.io/client-go v0.0.0-20191003000419-f68efa97b39e
+)
 
 require (
 	github.com/prometheus/client_golang v1.1.0
