@@ -93,7 +93,7 @@ func (c *RouteController) GetRoute(key string) (*Route, error) {
 		return nil, err
 	}
 
-	if !exists {
+	if !exists || x == nil {
 		return nil, nil
 	}
 

@@ -1,9 +1,9 @@
 package controller
 
 import (
+	"fmt"
 	"testing"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic/fake"
@@ -11,19 +11,10 @@ import (
 
 type testControllerShutdownFunc func()
 
-func newTestController(t *testing.T, routes ...string) (*RouteController, testControllerShutdownFunc) {
+func newTestController(t *testing.T, objects ...runtime.Object) (*RouteController, testControllerShutdownFunc) {
 	t.Helper()
-	routeObjects := make([]runtime.Object, 0)
 
-	for _, route := range routes {
-		obj, err := newUnstructuredFromRoute(route, "test", route)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		routeObjects = append(routeObjects, obj)
-	}
-
-	clientSet := fake.NewSimpleDynamicClient(runtime.NewScheme(), routeObjects...)
+	clientSet := fake.NewSimpleDynamicClient(runtime.NewScheme(), objects...)
 	controller, err := NewController(clientSet)
 	if err != nil {
 		t.Fatal("failed to create test controller")
@@ -39,7 +30,7 @@ func newTestController(t *testing.T, routes ...string) (*RouteController, testCo
 	}
 }
 
-func newUnstructuredFromRoute(name, namespace, host string) (*unstructured.Unstructured, error) {
+func newUnstructuredRoute(namespace, name, host string) (*unstructured.Unstructured, error) {
 	u := unstructured.Unstructured{}
 	u.SetAPIVersion("route.openshift.io/v1")
 	u.SetKind("Route")
@@ -51,39 +42,95 @@ func newUnstructuredFromRoute(name, namespace, host string) (*unstructured.Unstr
 	return &u, nil
 }
 
-func TestNewController(t *testing.T) {
+func mustCreateRoute(t *testing.T, namespace, name, host string) runtime.Object {
+	obj, err := newUnstructuredRoute(namespace, name, host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return runtime.Object(obj)
+}
+
+func TestControllerNoRoutes(t *testing.T) {
 	c, cleanup := newTestController(t)
 	defer cleanup()
 
-	routes := c.GetRoutes(v1.NamespaceAll)
-	if actual, expected := len(routes), 0; expected != actual {
-		t.Errorf("expected %v, got %v", expected, actual)
-	}
-
-	newRoute := "foo.bar.com"
-	obj, err := newUnstructuredFromRoute(newRoute, "test", newRoute)
+	routes, err := c.AllRoutes()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := c.routeInformer.Informer().GetStore().Add(obj); err != nil {
-		t.Fatalf("failed to add new route: %v", err)
+
+	if actual, expected := len(routes), 0; expected != actual {
+		t.Errorf("expected %v, got %v", expected, actual)
+	}
+}
+
+func TestControllerKnownRoutes(t *testing.T) {
+	testCases := []struct {
+		namespace string
+		name      string
+		host      string
+	}{{
+		namespace: "openshift-console",
+		name:      "downloads",
+		host:      "host-a",
+	}, {
+		namespace: "openshift-console",
+		name:      "console",
+		host:      "host-b",
+	}}
+
+	var expected []runtime.Object
+
+	for _, tc := range testCases {
+		expected = append(expected, mustCreateRoute(t, tc.namespace, tc.name, tc.host))
 	}
 
-	routes = c.GetRoutes(v1.NamespaceAll)
-	if actual, expected := len(routes), 1; expected != actual {
+	c, cleanup := newTestController(t, expected...)
+	defer cleanup()
+
+	actual, err := c.AllRoutes()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(actual) != len(expected) {
 		t.Errorf("expected %v, got %v", expected, actual)
 	}
 
-	if routes[0] != newRoute {
-		t.Errorf("expected %q, got %q", newRoute, routes[0])
+	for _, tc := range testCases {
+		id := fmt.Sprintf("%s/%s", tc.namespace, tc.name)
+		route, err := c.GetRoute(id)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if route == nil {
+			t.Fatalf("expected non-nil route")
+		}
+		if route.Namespace() != tc.namespace {
+			t.Errorf("expected %q, got %q", tc.namespace, route.Namespace())
+		}
+		if route.Name() != tc.name {
+			t.Errorf("expected %q, got %q", tc.name, route.Name())
+		}
+		if route.Host() != tc.host {
+			t.Errorf("expected %q, got %q", tc.host, route.Host())
+		}
+		if a, e := route.String(), fmt.Sprintf("%s/%s", tc.namespace, tc.name); a != e {
+			t.Errorf("expected %q, got %q", e, a)
+		}
+	}
+}
+
+func TestControllerUnknownRoutes(t *testing.T) {
+	c, cleanup := newTestController(t, mustCreateRoute(t, "foo", "bar", "foo.com"))
+	defer cleanup()
+
+	route, err := c.GetRoute("should/not-exist")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	routesIndexedByNamespace := c.GetRoutesIndexedByNamespace()
-	val, ok := routesIndexedByNamespace["test"]
-	if !ok {
-		t.Fatalf("expected to find a route in namespace %q", "test")
-	}
-	if val != newRoute {
-		t.Errorf("expected %q, got %q", newRoute, val)
+	if route != nil {
+		t.Fatalf("expected nil route, got %v", route)
 	}
 }
