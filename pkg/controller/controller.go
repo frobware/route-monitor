@@ -158,7 +158,6 @@ func (r Route) String() string {
 }
 
 func (r Route) URL() (*url.URL, error) {
-	// TODO(frobware) - infer scheme from raw object
-	rawurl := fmt.Sprintf("https://%s", r.Host())
-	return url.Parse(rawurl)
+	// TODO(frobware) - infer scheme from raw "port"
+	return url.Parse(fmt.Sprintf("https://%s", r.Host()))
 }
