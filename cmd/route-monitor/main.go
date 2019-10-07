@@ -69,7 +69,7 @@ func connect(url *url.URL, timeout time.Duration) (bool, error) {
 	return true, nil
 }
 
-func monitorRoutes(controller *controller.RouteController, names []string, f reachableFunc) {
+func connectRoutes(controller *controller.RouteController, names []string, f reachableFunc) {
 	var i uint64 = 0
 
 	for {
@@ -123,7 +123,6 @@ func monitorRoutes(controller *controller.RouteController, names []string, f rea
 }
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -149,10 +148,7 @@ func main() {
 		klog.Fatalf("failed to start routeController: %v", err)
 	}
 
-	go monitorRoutes(routeController, flag.Args(), func(name string, status reachableStatus) {
-		if name == "openshift-console/console" {
-			status = UnreachableRoute
-		}
+	go connectRoutes(routeController, flag.Args(), func(name string, status reachableStatus) {
 		switch status {
 		case ReachableRoute:
 			klog.V(0).Infof("route %q is reachable", name)
