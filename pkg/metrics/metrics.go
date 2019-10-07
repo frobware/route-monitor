@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"k8s.io/klog"
 )
 
 var (
@@ -48,27 +47,22 @@ var (
 )
 
 func SetRoutesReachableGauge(name string) {
-	klog.V(0).Infof("route %q is reachable", name)
 	routesReachableGauge.With(prometheus.Labels{"name": name}).Set(1)
 }
 
 func SetRoutesUnreachableGauge(name string) {
-	klog.V(0).Infof("route %q is unreachable", name)
 	routesReachableGauge.With(prometheus.Labels{"name": name}).Set(0)
 }
 
 func IncRoutesReachableCounter(name string) {
-	klog.V(0).Infof("route %q is reachable", name)
 	routesReachableCounter.With(prometheus.Labels{"name": name}).Inc()
 }
 
 func IncRoutesUnreachableCounter(name string) {
-	klog.V(0).Infof("route %q is NOT reachable", name)
 	routesUnReachableCounter.With(prometheus.Labels{"name": name}).Inc()
 }
 
 func IncRoutesUnknownCounter(name string) {
-	klog.V(0).Infof("route %q is unknown", name)
 	routesUnknownCounter.With(prometheus.Labels{"name": name}).Inc()
 }
 

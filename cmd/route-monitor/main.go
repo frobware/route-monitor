@@ -155,10 +155,13 @@ func main() {
 		}
 		switch status {
 		case ReachableRoute:
+			klog.V(0).Infof("route %q is reachable", name)
 			metrics.SetRouteReachable(name)
 		case UnreachableRoute:
+			klog.V(0).Infof("route %q is unreachable", name)
 			metrics.SetRouteUnreachable(name)
 		case UnknownRoute:
+			klog.V(0).Infof("route %q is unknown", name)
 			metrics.SetRouteUnknown(name)
 		}
 	})
