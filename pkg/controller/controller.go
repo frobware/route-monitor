@@ -29,6 +29,11 @@ type Route struct {
 	host      string
 }
 
+func hostFromUnstructured(u *unstructured.Unstructured) string {
+	host, _, _ := unstructured.NestedString(u.Object, "spec", "host")
+	return host
+}
+
 // NewController constructs a new RouteController that watches for routes
 // as they are added, updated and deleted on the cluster.
 func NewController(client dynamic.Interface) (*RouteController, error) {
@@ -60,21 +65,8 @@ func (c *RouteController) Start(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// GetRoutes returns all the routes in namespace
-func (c *RouteController) GetRoutes(namespace string) []string {
-	var routes []string
-
-	for _, x := range c.routeInformer.Informer().GetStore().List() {
-		u := x.(*unstructured.Unstructured).DeepCopy()
-		if host := newRouteHostFromUnstructured(u); host != "" {
-			routes = append(routes, host)
-		}
-	}
-
-	return routes
-}
-
-// AllRoutes returns routes from all namespaces
+// AllRoutes returns route names from all namespaces. Each name is
+// formatted as <namespace>/<name>.
 func (c *RouteController) AllRoutes() ([]string, error) {
 	var routes []string
 
@@ -99,7 +91,7 @@ func (c *RouteController) GetRoute(key string) (*Route, error) {
 
 	u := x.(*unstructured.Unstructured).DeepCopy()
 
-	if hostString := newRouteHostFromUnstructured(u); hostString != "" {
+	if hostString := hostFromUnstructured(u); hostString != "" {
 		return &Route{
 			name:      u.GetName(),
 			namespace: u.GetNamespace(),
@@ -108,37 +100,6 @@ func (c *RouteController) GetRoute(key string) (*Route, error) {
 	}
 
 	return nil, nil
-}
-
-func (c *RouteController) RouteExists(key string) (bool, string) {
-	if x, exists, _ := c.routeInformer.Informer().GetStore().GetByKey(key); exists {
-		u := x.(*unstructured.Unstructured).DeepCopy()
-		if host := newRouteHostFromUnstructured(u); host != "" {
-			return true, host
-		}
-	}
-
-	return false, ""
-}
-
-// GetRoutesIndexedByNamespace returns all the routes mapped by their
-// namespace.
-func (c *RouteController) GetRoutesIndexedByNamespace() map[string]string {
-	routes := map[string]string{}
-
-	for _, x := range c.routeInformer.Informer().GetStore().List() {
-		u := x.(*unstructured.Unstructured).DeepCopy()
-		if host := newRouteHostFromUnstructured(u); host != "" {
-			routes[u.GetNamespace()] = host
-		}
-	}
-
-	return routes
-}
-
-func newRouteHostFromUnstructured(u *unstructured.Unstructured) string {
-	host, _, _ := unstructured.NestedString(u.Object, "spec", "host")
-	return host
 }
 
 func (r Route) Name() string {

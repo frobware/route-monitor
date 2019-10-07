@@ -98,23 +98,27 @@ func TestControllerKnownRoutes(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		id := fmt.Sprintf("%s/%s", tc.namespace, tc.name)
-		route, err := c.GetRoute(id)
+		route, err := c.GetRoute(fmt.Sprintf("%s/%s", tc.namespace, tc.name))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
+
 		if route == nil {
 			t.Fatalf("expected non-nil route")
 		}
+
 		if route.Namespace() != tc.namespace {
 			t.Errorf("expected %q, got %q", tc.namespace, route.Namespace())
 		}
+
 		if route.Name() != tc.name {
 			t.Errorf("expected %q, got %q", tc.name, route.Name())
 		}
+
 		if route.Host() != tc.host {
 			t.Errorf("expected %q, got %q", tc.host, route.Host())
 		}
+
 		if a, e := route.String(), fmt.Sprintf("%s/%s", tc.namespace, tc.name); a != e {
 			t.Errorf("expected %q, got %q", e, a)
 		}
