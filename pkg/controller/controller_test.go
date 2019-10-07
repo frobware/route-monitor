@@ -16,7 +16,11 @@ func newTestController(t *testing.T, routes ...string) (*RouteController, testCo
 	routeObjects := make([]runtime.Object, 0)
 
 	for _, route := range routes {
-		routeObjects = append(routeObjects, newUnstructuredFromRoute(route, "test", route))
+		obj, err := newUnstructuredFromRoute(route, "test", route)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		routeObjects = append(routeObjects, obj)
 	}
 
 	clientSet := fake.NewSimpleDynamicClient(runtime.NewScheme(), routeObjects...)
@@ -35,14 +39,16 @@ func newTestController(t *testing.T, routes ...string) (*RouteController, testCo
 	}
 }
 
-func newUnstructuredFromRoute(name, namespace, host string) *unstructured.Unstructured {
+func newUnstructuredFromRoute(name, namespace, host string) (*unstructured.Unstructured, error) {
 	u := unstructured.Unstructured{}
 	u.SetAPIVersion("route.openshift.io/v1")
 	u.SetKind("Route")
 	u.SetName(name)
 	u.SetNamespace(namespace)
-	unstructured.SetNestedField(u.Object, host, "spec", "host")
-	return &u
+	if err := unstructured.SetNestedField(u.Object, host, "spec", "host"); err != nil {
+		return nil, err
+	}
+	return &u, nil
 }
 
 func TestNewController(t *testing.T) {
@@ -55,8 +61,11 @@ func TestNewController(t *testing.T) {
 	}
 
 	newRoute := "foo.bar.com"
-
-	if err := c.routeInformer.Informer().GetStore().Add(newUnstructuredFromRoute(newRoute, "test", newRoute)); err != nil {
+	obj, err := newUnstructuredFromRoute(newRoute, "test", newRoute)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := c.routeInformer.Informer().GetStore().Add(obj); err != nil {
 		t.Fatalf("failed to add new route: %v", err)
 	}
 
