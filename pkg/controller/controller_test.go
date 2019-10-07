@@ -1,9 +1,10 @@
-package controller
+package controller_test
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/frobware/route-monitor/pkg/controller"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic/fake"
@@ -11,11 +12,11 @@ import (
 
 type testControllerShutdownFunc func()
 
-func newTestController(t *testing.T, objects ...runtime.Object) (*RouteController, testControllerShutdownFunc) {
+func newTestController(t *testing.T, objects ...runtime.Object) (*controller.RouteController, testControllerShutdownFunc) {
 	t.Helper()
 
 	clientSet := fake.NewSimpleDynamicClient(runtime.NewScheme(), objects...)
-	controller, err := NewController(clientSet)
+	controller, err := controller.NewController(clientSet)
 	if err != nil {
 		t.Fatal("failed to create test controller")
 	}
