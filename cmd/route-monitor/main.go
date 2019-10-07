@@ -26,6 +26,8 @@ var (
 	kubeconfig               = flag.String("kubeconfig", "", "Path to kubeconfig file with authorization and master location information.")
 )
 
+type connected func(name string, reachable bool)
+
 func connect(url *url.URL, timeout time.Duration) (bool, error) {
 	// construct the client and request. The HTTP client timeout
 	// is independent of the context timeout.
@@ -57,8 +59,6 @@ func connect(url *url.URL, timeout time.Duration) (bool, error) {
 	return true, nil
 }
 
-type connected func(route *controller.Route, reachable bool)
-
 func monitorRoutes(controller *controller.RouteController, names []string, f connected) {
 	for {
 		// TODO(frobware) - how many of these monitoring routes do we expect?
@@ -69,26 +69,29 @@ func monitorRoutes(controller *controller.RouteController, names []string, f con
 			route, err := controller.GetRoute(name)
 			if err != nil {
 				klog.Errorf("error fetching route %q: %v", name, err)
+				f(name, false)
 				continue
 			}
 			if route == nil {
 				klog.Errorf("unknown route %q", name)
+				f(name, false)
 				continue
 			}
 
 			url, err := route.URL()
 			if err != nil {
 				klog.Errorf("failed to parse URL for route %q: %v", route.Host(), err)
+				f(name, false)
 				continue
 			}
 
 			if _, err := connect(url, defaultConnectionTimeout); err != nil {
 				klog.Errorf("failed to connect to %q: %v", url.String(), err)
-				f(route, false)
+				f(name, false)
 				continue
 			}
 
-			f(route, true)
+			f(name, true)
 			klog.Infof("route %q IS reachable", fmt.Sprintf("%s/%s", route.Namespace(), route.Name()))
 		}
 
@@ -123,9 +126,12 @@ func main() {
 		klog.Fatalf("failed to start routeController: %v", err)
 	}
 
-	go monitorRoutes(routeController, flag.Args(), func(r *controller.Route, reachable bool) {
-		if !reachable {
-			metrics.UnreachableRoutes.With(prometheus.Labels{"route": r.String()}).Inc()
+	go monitorRoutes(routeController, flag.Args(), func(name string, reachable bool) {
+		switch reachable {
+		case true:
+			metrics.ReachableRoutes.With(prometheus.Labels{"route": name}).Inc()
+		default:
+			metrics.UnreachableRoutes.With(prometheus.Labels{"route": name}).Inc()
 		}
 	})
 
