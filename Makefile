@@ -6,7 +6,7 @@ bin/route-monitor:
 	go build -gcflags=all="-N -l" -o $@ cmd/route-monitor/main.go
 
 test:
-	go test -race ./...
+	go test -v -race ./...
 
 clean:
 	$(RM) -r bin
