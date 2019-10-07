@@ -11,5 +11,9 @@ test:
 clean:
 	$(RM) -r bin
 
+ROUTES =						\
+	openshift-console/console			\
+	openshift-console/downloads			\
+
 run: bin/route-monitor
-	./bin/route-monitor -kubeconfig $(KUBECONFIG) openshift-console/downloads openshift-console/console foo/does-not-exist
+	./bin/route-monitor -kubeconfig $(KUBECONFIG) openshift-console/downloads $(ROUTES) foo/does-not-exist

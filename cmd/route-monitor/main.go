@@ -3,21 +3,30 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/frobware/route-monitor/pkg/controller"
 	"github.com/frobware/route-monitor/pkg/metrics"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+)
+
+type reachableStatus int
+type reachableFunc func(route string, status reachableStatus)
+
+const (
+	UnknownRoute reachableStatus = iota
+	ReachableRoute
+	UnreachableRoute
 )
 
 var (
@@ -26,7 +35,9 @@ var (
 	kubeconfig               = flag.String("kubeconfig", "", "Path to kubeconfig file with authorization and master location information.")
 )
 
-type connected func(name string, reachable bool)
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
 
 func connect(url *url.URL, timeout time.Duration) (bool, error) {
 	// construct the client and request. The HTTP client timeout
@@ -59,48 +70,61 @@ func connect(url *url.URL, timeout time.Duration) (bool, error) {
 	return true, nil
 }
 
-func monitorRoutes(controller *controller.RouteController, names []string, f connected) {
+func monitorRoutes(controller *controller.RouteController, names []string, f reachableFunc) {
+	var i uint64 = 0
+
 	for {
 		// TODO(frobware) - how many of these monitoring routes do we expect?
 		// TODO(frobware) - should we do them all in bulk? if so, how many?
 		// TODO(frobware) - do we need timeout/cancellation
 
+		i += 1
+
 		for _, name := range names {
-			route, err := controller.GetRoute(name)
-			if err != nil {
-				klog.Errorf("error fetching route %q: %v", name, err)
-				f(name, false)
+			// Randomly fail/testing/experimentation
+			if i%2 == 0 && os.Getenv("RANDOM_RESULT") != "" {
+				switch n := rand.Intn(3); n {
+				case 0:
+					klog.Infof("**** Ramdomising result for %q to ReachableRoute", name)
+					f(name, ReachableRoute)
+				case 1:
+					klog.Infof("**** Ramdomising result for %q to UnreachableRoute", name)
+					f(name, UnreachableRoute)
+				case 2:
+					klog.Infof("**** Ramdomising result for %q to UnknownRoute", name)
+					f(name, UnknownRoute)
+				}
 				continue
 			}
-			if route == nil {
-				klog.Errorf("unknown route %q", name)
-				f(name, false)
+
+			route, err := controller.GetRoute(name)
+			if err != nil || route == nil {
+				f(name, UnknownRoute)
 				continue
 			}
 
 			url, err := route.URL()
 			if err != nil {
 				klog.Errorf("failed to parse URL for route %q: %v", route.Host(), err)
-				f(name, false)
+				f(name, UnknownRoute)
 				continue
 			}
 
 			if _, err := connect(url, defaultConnectionTimeout); err != nil {
-				klog.Errorf("failed to connect to %q: %v", url.String(), err)
-				f(name, false)
+				f(name, UnreachableRoute)
 				continue
 			}
 
-			f(name, true)
-			klog.Infof("route %q IS reachable", fmt.Sprintf("%s/%s", route.Namespace(), route.Name()))
+			f(name, ReachableRoute)
 		}
 
 		// TODO(frobware) - parameterise
-		time.Sleep(1 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -126,12 +150,14 @@ func main() {
 		klog.Fatalf("failed to start routeController: %v", err)
 	}
 
-	go monitorRoutes(routeController, flag.Args(), func(name string, reachable bool) {
-		switch reachable {
-		case true:
-			metrics.ReachableRoutes.With(prometheus.Labels{"route": name}).Inc()
-		default:
-			metrics.UnreachableRoutes.With(prometheus.Labels{"route": name}).Inc()
+	go monitorRoutes(routeController, flag.Args(), func(name string, status reachableStatus) {
+		switch status {
+		case ReachableRoute:
+			metrics.SetRouteReachable(name)
+		case UnreachableRoute:
+			metrics.SetRouteUnreachable(name)
+		case UnknownRoute:
+			metrics.SetRouteUnknown(name)
 		}
 	})
 

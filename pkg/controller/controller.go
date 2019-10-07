@@ -65,20 +65,20 @@ func (c *RouteController) Start(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// AllRoutes returns route names from all namespaces. Each name is
+// AllRoutes returns route names from all namespaces; names are
 // formatted as <namespace>/<name>.
-// func (c *RouteController) AllRoutes() ([]string, error) {
-// 	var routes []string
+func (c *RouteController) AllRoutes() ([]string, error) {
+	var routes []string
 
-// 	for _, x := range c.routeInformer.Informer().GetStore().List() {
-// 		u := x.(*unstructured.Unstructured).DeepCopy()
-// 		routes = append(routes, fmt.Sprintf("%s/%s", u.GetNamespace(), u.GetName()))
-// 	}
+	for _, x := range c.routeInformer.Informer().GetStore().List() {
+		u := x.(*unstructured.Unstructured).DeepCopy()
+		routes = append(routes, fmt.Sprintf("%s/%s", u.GetNamespace(), u.GetName()))
+	}
 
-// 	return routes, nil
-// }
+	return routes, nil
+}
 
-// getroute returns the route for key (<namespace>/<name>).
+// GetRoute returns the route for key (<namespace>/<name>).
 func (c *RouteController) GetRoute(key string) (*Route, error) {
 	x, exists, err := c.routeInformer.Informer().GetStore().GetByKey(key)
 	if err != nil {
@@ -91,11 +91,11 @@ func (c *RouteController) GetRoute(key string) (*Route, error) {
 
 	u := x.(*unstructured.Unstructured).DeepCopy()
 
-	if hostString := hostFromUnstructured(u); hostString != "" {
+	if host := hostFromUnstructured(u); host != "" {
 		return &Route{
 			name:      u.GetName(),
 			namespace: u.GetNamespace(),
-			host:      hostString,
+			host:      host,
 		}, nil
 	}
 
@@ -119,6 +119,7 @@ func (r Route) String() string {
 }
 
 func (r Route) URL() (*url.URL, error) {
-	// TODO(frobware) - infer scheme from raw "port"
+	// TODO(frobware) - infer scheme from raw "port" or is https
+	// always OK here for the routes we're trying to validate?
 	return url.Parse(fmt.Sprintf("https://%s", r.Host()))
 }
