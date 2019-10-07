@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"net/url"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -20,6 +21,12 @@ type RouteController struct {
 	informerFactory dynamicinformer.DynamicSharedInformerFactory
 	routeInformer   informers.GenericInformer
 	routeResource   *schema.GroupVersionResource
+}
+
+type Route struct {
+	name      string
+	namespace string
+	host      string
 }
 
 // NewController constructs a new RouteController that watches for routes
@@ -67,6 +74,53 @@ func (c *RouteController) GetRoutes(namespace string) []string {
 	return routes
 }
 
+// AllRoutes returns routes from all namespaces
+func (c *RouteController) AllRoutes() ([]string, error) {
+	var routes []string
+
+	for _, x := range c.routeInformer.Informer().GetStore().List() {
+		u := x.(*unstructured.Unstructured).DeepCopy()
+		routes = append(routes, fmt.Sprintf("%s/%s", u.GetNamespace(), u.GetName()))
+	}
+
+	return routes, nil
+}
+
+// GetRoute returns the route for key (<namespace>/<name>).
+func (c *RouteController) GetRoute(key string) (*Route, error) {
+	x, exists, err := c.routeInformer.Informer().GetStore().GetByKey(key)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, nil
+	}
+
+	u := x.(*unstructured.Unstructured).DeepCopy()
+
+	if hostString := newRouteHostFromUnstructured(u); hostString != "" {
+		return &Route{
+			name:      u.GetName(),
+			namespace: u.GetNamespace(),
+			host:      hostString,
+		}, nil
+	}
+
+	return nil, nil
+}
+
+func (c *RouteController) RouteExists(key string) (bool, string) {
+	if x, exists, _ := c.routeInformer.Informer().GetStore().GetByKey(key); exists {
+		u := x.(*unstructured.Unstructured).DeepCopy()
+		if host := newRouteHostFromUnstructured(u); host != "" {
+			return true, host
+		}
+	}
+
+	return false, ""
+}
+
 // GetRoutesIndexedByNamespace returns all the routes mapped by their
 // namespace.
 func (c *RouteController) GetRoutesIndexedByNamespace() map[string]string {
@@ -85,4 +139,26 @@ func (c *RouteController) GetRoutesIndexedByNamespace() map[string]string {
 func newRouteHostFromUnstructured(u *unstructured.Unstructured) string {
 	host, _, _ := unstructured.NestedString(u.Object, "spec", "host")
 	return host
+}
+
+func (r Route) Name() string {
+	return r.name
+}
+
+func (r Route) Namespace() string {
+	return r.namespace
+}
+
+func (r Route) Host() string {
+	return r.host
+}
+
+func (r Route) String() string {
+	return fmt.Sprintf("%v/%v", r.Namespace(), r.Name())
+}
+
+func (r Route) URL() (*url.URL, error) {
+	// TODO(frobware) - infer scheme from raw object
+	rawurl := fmt.Sprintf("https://%s", r.Host())
+	return url.Parse(rawurl)
 }

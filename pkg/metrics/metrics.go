@@ -5,16 +5,16 @@ import (
 )
 
 var (
-	UnreachableHosts = prometheus.NewCounterVec(
+	UnreachableRoutes = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "unreachable_hosts",
-			Help: "Number of unreachable hosts.",
+			Name: "unreachable_routes",
+			Help: "Number of unreachable routes.",
 		},
-		[]string{"host", "namespace"},
+		[]string{"route"},
 	)
 )
 
 func init() {
-	prometheus.MustRegister(UnreachableHosts)
+	prometheus.MustRegister(UnreachableRoutes)
 	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
 }

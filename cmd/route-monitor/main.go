@@ -26,30 +26,6 @@ var (
 	kubeconfig               = flag.String("kubeconfig", "", "Path to kubeconfig file with authorization and master location information.")
 )
 
-type route struct {
-	scheme    string
-	host      string
-	namespace string
-}
-
-// TODO(frobware) take these from the command line or the environment
-var routes = []route{{
-	scheme: "https",
-	host:   "foo.com",
-}, {
-	scheme: "https",
-	host:   "bar.com",
-}, {
-	scheme:    "https",
-	host:      "console-openshift-console.apps.amcdermo.devcluster.openshift.com",
-	namespace: "openshift-console",
-}, {
-	scheme:    "https",
-	host:      "console-openshift-console.apps.amcdermo.devcluster.openshift.com",
-	namespace: "openshift-console",
-},
-}
-
 func connect(url *url.URL, timeout time.Duration) (bool, error) {
 	// construct the client and request. The HTTP client timeout
 	// is independent of the context timeout.
@@ -81,43 +57,39 @@ func connect(url *url.URL, timeout time.Duration) (bool, error) {
 	return true, nil
 }
 
-type connected func(r route, reachable bool)
+type connected func(route *controller.Route, reachable bool)
 
-func monitorRoutes(controller *controller.RouteController, routes []route, f connected) {
+func monitorRoutes(controller *controller.RouteController, names []string, f connected) {
 	for {
-		existingRoutes := controller.GetRoutesIndexedByNamespace()
-		for k, v := range existingRoutes {
-			klog.Infof("existing route: namespace: %q, host: %q", k, v)
-		}
-
 		// TODO(frobware) - how many of these monitoring routes do we expect?
 		// TODO(frobware) - should we do them all in bulk? if so, how many?
 		// TODO(frobware) - do we need timeout/cancellation
 
-		for _, r := range routes {
-			if _, ok := existingRoutes[r.namespace]; !ok {
-				klog.Errorf("route %q does not exist", r.host)
-				f(r, false)
-				continue
-			}
-
-			// TODO(frobware) - infer scheme from cluster route object
-			rawurl := fmt.Sprintf("%s://%s", r.scheme, r.host)
-			route, err := url.Parse(rawurl)
+		for _, name := range names {
+			route, err := controller.GetRoute(name)
 			if err != nil {
-				klog.Errorf("failed to parse URL %q: %v", rawurl, err)
-				f(r, false)
+				klog.Errorf("error fetching route %q: %v", name, err)
+				continue
+			}
+			if route == nil {
+				klog.Errorf("unknown route %q", name)
 				continue
 			}
 
-			if _, err := connect(route, defaultConnectionTimeout); err != nil {
-				klog.Errorf("failed to connect to %q: %v", route.String(), err)
-				f(r, false)
+			url, err := route.URL()
+			if err != nil {
+				klog.Errorf("failed to parse URL for route %q: %v", route.Host(), err)
 				continue
 			}
 
-			f(r, true)
-			klog.Infof("route %q IS reachable", route.String())
+			if _, err := connect(url, defaultConnectionTimeout); err != nil {
+				klog.Errorf("failed to connect to %q: %v", url.String(), err)
+				f(route, false)
+				continue
+			}
+
+			f(route, true)
+			klog.Infof("route %q IS reachable", fmt.Sprintf("%s/%s", route.Namespace(), route.Name()))
 		}
 
 		// TODO(frobware) - parameterise
@@ -139,21 +111,21 @@ func main() {
 		klog.Fatalf("failed to create config: %v", err)
 	}
 
-	stopCh := signals.SetupSignalHandler()
-
 	routeController, err := controller.NewController(client)
 	if err != nil {
 		klog.Fatalf("failed to create routeController: %v", err)
 	}
 
-	klog.Info("starting route routeController")
+	stopCh := signals.SetupSignalHandler()
+
+	klog.Info("starting route controller")
 	if err := routeController.Start(stopCh); err != nil {
 		klog.Fatalf("failed to start routeController: %v", err)
 	}
 
-	go monitorRoutes(routeController, routes, func(r route, reachable bool) {
+	go monitorRoutes(routeController, flag.Args(), func(r *controller.Route, reachable bool) {
 		if !reachable {
-			metrics.UnreachableHosts.With(prometheus.Labels{"host": r.host, "namespace": r.namespace}).Inc()
+			metrics.UnreachableRoutes.With(prometheus.Labels{"route": r.String()}).Inc()
 		}
 	})
 

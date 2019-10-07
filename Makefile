@@ -12,4 +12,4 @@ clean:
 	$(RM) -r bin
 
 run: bin/route-monitor
-	./bin/route-monitor -kubeconfig $(KUBECONFIG)
+	./bin/route-monitor -kubeconfig $(KUBECONFIG) openshift-console/downloads openshift-console/console foo/does-not-exist
