@@ -2,11 +2,10 @@
 
 # Reproducible builds? Let's see:
 
-export GO111MODULE=on
-
-go clean -v -modcache -cache -testcache
-
 set -eu
+
+GO111MODULE=off go clean -x -modcache -cache -testcache
+export GO111MODULE=on
 
 rm -f go.mod go.sum
 rm -rf vendor
