@@ -1,13 +1,13 @@
 package main
 
 import (
-	"context"
+	"crypto/tls"
 	"flag"
-	"io/ioutil"
+	"fmt"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/frobware/route-monitor/pkg/controller"
@@ -37,47 +37,33 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func connect(url *url.URL, timeout time.Duration) (bool, error) {
-	// construct the client and request. The HTTP client timeout
-	// is independent of the context timeout.
-	client := http.Client{Timeout: timeout}
-	req, err := http.NewRequest(http.MethodGet, url.String(), nil)
+func dial(host, port string, timeout time.Duration) (bool, error) {
+	log.Printf("dialling %q\n", fmt.Sprintf("%s:%s", host, port))
+
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	dialer := net.Dialer{
+		Timeout: timeout,
+	}
+
+	conn, err := tls.DialWithDialer(&dialer, "tcp", fmt.Sprintf("%s:%s", host, port), conf)
 	if err != nil {
+		log.Println(err)
 		return false, err
 	}
 
-	// We initialize the context, and specify a context timeout.
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel() // cancel() is a hook to cancel the deadline
-
-	// We attach the initialized context to the request, and
-	// execute a request with it.
-	reqWithDeadline := req.WithContext(ctx)
-	response, clientErr := client.Do(reqWithDeadline)
-	if clientErr != nil {
-		return false, err
-	}
-
-	defer response.Body.Close()
-
-	_, readErr := ioutil.ReadAll(response.Body)
-	if readErr != nil {
-		return false, readErr
-	}
-
+	defer conn.Close()
+	log.Printf("connection established: %s => %s\n", conn.LocalAddr().String(), conn.RemoteAddr().String())
 	return true, nil
 }
 
-func connectRoutes(controller *controller.RouteController, names []string, f reachableFunc) {
-	var i uint64 = 0
-
+func dialRoutes(timeout time.Duration, controller *controller.RouteController, names []string, f reachableFunc) {
 	for {
 		// TODO(frobware) - how many of these monitoring routes do we expect?
 		// TODO(frobware) - should we do them all in bulk? if so, how many?
 		// TODO(frobware) - do we need timeout/cancellation
-
-		i += 1
-
 		for _, name := range names {
 			route, err := controller.GetRoute(name)
 			if err != nil || route == nil {
@@ -85,14 +71,7 @@ func connectRoutes(controller *controller.RouteController, names []string, f rea
 				continue
 			}
 
-			hostURL, err := route.URL()
-			if err != nil {
-				log.Printf("failed to parse URL for route %q: %v", route.Host(), err)
-				f(name, UnknownRoute)
-				continue
-			}
-
-			if _, err := connect(hostURL, defaultConnectionTimeout); err != nil {
+			if _, err := dial(route.Host(), route.Port(), timeout); err != nil {
 				f(name, UnreachableRoute)
 				continue
 			}
@@ -130,7 +109,7 @@ func main() {
 		log.Fatalf("failed to start routeController: %v\n", err)
 	}
 
-	go connectRoutes(routeController, flag.Args(), func(name string, status reachableStatus) {
+	go dialRoutes(defaultConnectionTimeout, routeController, flag.Args(), func(name string, status reachableStatus) {
 		switch status {
 		case ReachableRoute:
 			log.Printf("route %q is reachable\n", name)

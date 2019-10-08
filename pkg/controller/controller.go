@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"net/url"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -114,12 +113,13 @@ func (r Route) Host() string {
 	return r.host
 }
 
-func (r Route) String() string {
-	return fmt.Sprintf("%v/%v", r.Namespace(), r.Name())
+func (r Route) Port() string {
+	if r.Host() == "console-openshift-console.apps.amcdermo.devcluster.openshift.com" {
+		return "1234"
+	}
+	return "443"
 }
 
-func (r Route) URL() (*url.URL, error) {
-	// TODO(frobware) - infer scheme from raw "port" or is https
-	// always OK here for the routes we're trying to validate?
-	return url.Parse(fmt.Sprintf("https://%s", r.Host()))
+func (r Route) String() string {
+	return fmt.Sprintf("%v/%v", r.Namespace(), r.Name())
 }

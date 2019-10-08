@@ -7,10 +7,10 @@ import (
 var (
 	routesReachableGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "routes_reachable",
-			Help: "Number of reachable routes.",
+			Name: "route_state",
+			Help: "Current state of a route.",
 		},
-		[]string{"name"},
+		[]string{"name", "reachable", "unreachable", "unknown"},
 	)
 
 	routesReachableHistogram = prometheus.NewHistogramVec(
@@ -47,11 +47,11 @@ var (
 )
 
 func SetRoutesReachableGauge(name string) {
-	routesReachableGauge.With(prometheus.Labels{"name": name}).Set(1)
+	routesReachableGauge.With(prometheus.Labels{"name": name, "reachable": "1", "unreachable": "0", "unknown": "0"}).Set(1)
 }
 
 func SetRoutesUnreachableGauge(name string) {
-	routesReachableGauge.With(prometheus.Labels{"name": name}).Set(0)
+	routesReachableGauge.With(prometheus.Labels{"name": name, "reachable": "0", "unreachable": "1", "unknown": "0"}).Set(1)
 }
 
 func IncRoutesReachableCounter(name string) {
@@ -74,10 +74,10 @@ func SetRouteReachable(name string) {
 	// Experimenting with metric types; what makes most sense here?
 
 	// Historgram?
-	// SetRouteStatus(name, "200")
+	SetRouteStatus(name, "200")
 
 	// Counter?
-	// IncRoutesReachableCounter(name)
+	IncRoutesReachableCounter(name)
 
 	// Gauge?
 	SetRoutesReachableGauge(name)
@@ -87,16 +87,17 @@ func SetRouteUnreachable(name string) {
 	// Experimenting with metric types; what makes most sense here?
 
 	// Histogram?
-	// SetRouteStatus(name, "404")
+	SetRouteStatus(name, "404")
 
 	// Counter?
-	// IncRoutesUnreachableCounter(name)
+	IncRoutesUnreachableCounter(name)
 
 	// Gauge?
 	SetRoutesUnreachableGauge(name)
 }
 
 func SetRouteUnknown(name string) {
+	routesReachableGauge.With(prometheus.Labels{"name": name, "reachable": "0", "unreachable": "0", "unknown": "1"}).Set(1)
 }
 
 func init() {
