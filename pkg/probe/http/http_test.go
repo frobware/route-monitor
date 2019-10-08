@@ -93,7 +93,7 @@ func TestHTTPProbeProxy(t *testing.T) {
 	}
 }
 
-func noTestHTTPProbeChecker(t *testing.T) {
+func TestHTTPProbeChecker(t *testing.T) {
 	handleReq := func(s int, body string) func(w http.ResponseWriter, r *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(s)

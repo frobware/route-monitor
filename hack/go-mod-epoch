@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Reproducible builds? Let's see:
-
 set -eu
+
+# Reproducible builds? Let's see:
 
 GO111MODULE=off go clean -x -modcache -cache -testcache
 export GO111MODULE=on

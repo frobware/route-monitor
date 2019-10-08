@@ -15,6 +15,6 @@ require (
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/component-base v0.0.0-20191008075918-86c6082c6a20
 	k8s.io/klog v1.0.0
-	k8s.io/utils v0.0.0-20190920012459-5008bf6f8cd6
+	k8s.io/utils v0.0.0-20190923111123-69764acb6e8e
 	sigs.k8s.io/controller-runtime v0.2.2
 )

@@ -18,4 +18,4 @@ ROUTES =						\
 	openshift-console/downloads			\
 
 run: bin/route-monitor
-	./bin/route-monitor -kubeconfig $(KUBECONFIG) openshift-console/downloads $(ROUTES) foo/does-not-exist
+	./bin/route-monitor -kubeconfig $(KUBECONFIG) $(ROUTES) foo/does-not-exist

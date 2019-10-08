@@ -110,14 +110,10 @@ func (r Route) Namespace() string {
 }
 
 func (r Route) Host() string {
-	return r.host
-}
-
-func (r Route) Port() string {
-	if r.Host() == "console-openshift-console.apps.amcdermo.devcluster.openshift.com" {
-		return "1234"
+	if r.host == "console-openshift-console.apps.amcdermo.devcluster.openshift.com" {
+		return "not-found-console-openshift-console.apps.amcdermo.devcluster.openshift.com"
 	}
-	return "443"
+	return r.host
 }
 
 func (r Route) String() string {
