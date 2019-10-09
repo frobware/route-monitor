@@ -11,8 +11,7 @@ import (
 	"time"
 
 	"github.com/frobware/route-monitor/pkg/metrics"
-	"github.com/frobware/route-monitor/pkg/probe"
-	probehttp "github.com/frobware/route-monitor/pkg/probe/http"
+	"github.com/frobware/route-monitor/pkg/probehttp"
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -34,7 +33,7 @@ var (
 	metricsAddress = flag.String("metrics-address", ":8081", "The address to listen on for metric requests.")
 )
 
-func probeRoutes(prober probehttp.Prober, timeout time.Duration, names []string, mgr manager.Manager) {
+func probeRoutes(prober probehttp.HTTPProber, timeout time.Duration, names []string, mgr manager.Manager) {
 	log := log.WithName("prober")
 
 	for _, name := range names {
@@ -66,10 +65,10 @@ func probeRoutes(prober probehttp.Prober, timeout time.Duration, names []string,
 
 		result, _, _ := prober.Probe(hostURL, nil, timeout)
 		switch result {
-		case probe.Success, probe.Warning:
+		case probehttp.Success:
 			log.Info("reachable", "name", name, "url", hostURL)
 			metrics.SetRouteReachable(name)
-		case probe.Failure, probe.Unknown:
+		case probehttp.Failure, probehttp.Unknown:
 			log.Info("unreachable", "name", name, "url", hostURL)
 			metrics.SetRouteUnreachable(name)
 		default:
@@ -133,7 +132,7 @@ func main() {
 	}
 
 	go func() {
-		prober := probehttp.New(true)
+		prober := probehttp.New()
 		for {
 			probeRoutes(prober, 5*time.Second, flag.Args(), mgr)
 			time.Sleep(5 * time.Second)
