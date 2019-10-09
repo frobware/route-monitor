@@ -16,8 +16,7 @@ require (
 	github.com/prometheus/client_golang v1.1.0
 	k8s.io/apimachinery v0.0.0-20191006235458-f9f2f3f8ab02
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/component-base v0.0.0-20191009035928-dbf08fbbfd32
 	k8s.io/klog v1.0.0
-	k8s.io/utils v0.0.0-20190920012459-5008bf6f8cd6
+	k8s.io/utils v0.0.0-20190920012459-5008bf6f8cd6 // indirect
 	sigs.k8s.io/controller-runtime v0.0.0-00010101000000-000000000000
 )
