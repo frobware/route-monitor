@@ -12,8 +12,8 @@ replace (
 
 require (
 	github.com/go-logr/logr v0.1.0
+	github.com/openshift/api v3.9.1-0.20191008181517-e4fd21196097+incompatible
 	github.com/prometheus/client_golang v1.1.0
-	k8s.io/api v0.0.0-20191003000013-35e20aa79eb8
 	k8s.io/apimachinery v0.0.0-20191006235458-f9f2f3f8ab02
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/component-base v0.0.0-20191009035928-dbf08fbbfd32
