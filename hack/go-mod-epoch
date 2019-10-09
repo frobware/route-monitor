@@ -4,7 +4,7 @@ set -eu
 
 # Reproducible builds? Let's see:
 
-GO111MODULE=off go clean -x -modcache -cache -testcache
+go clean -x -modcache -cache -testcache
 export GO111MODULE=on
 
 rm -f go.mod go.sum
@@ -15,10 +15,17 @@ module github.com/frobware/route-monitor
 
 go 1.12
 
+require (
+)
+
 replace (
 	k8s.io/client-go => k8s.io/client-go kubernetes-1.16.1
+	k8s.io/api => k8s.io/api kubernetes-1.16.1
 	k8s.io/apimachinery => k8s.io/apimachinery kubernetes-1.16.1
+	github.com/appscode/jsonpatch => gomodules.xyz/jsonpatch/v2 v2.0.1
+	sigs.k8s.io/controller-runtime => github.com/frobware/controller-runtime bump-to-kube-1.16.1
 )
+
 EOF
 
 make

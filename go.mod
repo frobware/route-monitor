@@ -3,18 +3,24 @@ module github.com/frobware/route-monitor
 go 1.12
 
 replace (
+	github.com/appscode/jsonpatch => gomodules.xyz/jsonpatch/v2 v2.0.1
+	k8s.io/api => k8s.io/api v0.0.0-20191003000013-35e20aa79eb8
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
 	k8s.io/client-go => k8s.io/client-go v0.0.0-20191003000419-f68efa97b39e
+	sigs.k8s.io/controller-runtime => github.com/frobware/controller-runtime v0.2.0-beta.1.0.20191009100338-8e10fad09967
 )
 
 require (
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc // indirect
+	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf // indirect
+	github.com/go-logr/logr v0.1.0
+	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/prometheus/client_golang v1.1.0
-	github.com/stretchr/testify v1.3.0
+	k8s.io/api v0.0.0-20191003000013-35e20aa79eb8
 	k8s.io/apimachinery v0.0.0-20191006235458-f9f2f3f8ab02
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/component-base v0.0.0-20191008075918-86c6082c6a20
+	k8s.io/component-base v0.0.0-20191009035928-dbf08fbbfd32
 	k8s.io/klog v1.0.0
-	k8s.io/utils v0.0.0-20190923111123-69764acb6e8e
-	sigs.k8s.io/controller-runtime v0.2.2
+	k8s.io/utils v0.0.0-20190920012459-5008bf6f8cd6
+	sigs.k8s.io/controller-runtime v0.0.0-00010101000000-000000000000
 )
